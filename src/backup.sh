@@ -3,7 +3,7 @@
 # Cronjobs don't inherit their env, so load from file
 source env.sh
 
-function info {
+function info() {
   bold="\033[1m"
   reset="\033[0m"
   echo -e "\n$bold[INFO] $1$reset\n"
@@ -14,7 +14,7 @@ TIME_START="$(date +%s.%N)"
 DOCKER_SOCK="/var/run/docker.sock"
 if [ -S "$DOCKER_SOCK" ]; then
   TEMPFILE="$(mktemp)"
-  docker ps --format "{{.ID}}" --filter "label=docker-volume-backup.stop-during-backup=$BACKUP_IDENT" > "$TEMPFILE"
+  docker ps --format "{{.ID}}" --filter "label=docker-volume-backup.stop-during-backup=$BACKUP_IDENT" >"$TEMPFILE"
   CONTAINERS_TO_STOP="$(cat $TEMPFILE | tr '\n' ' ')"
   CONTAINERS_TO_STOP_TOTAL="$(cat $TEMPFILE | wc -l)"
   CONTAINERS_TOTAL="$(docker ps --format "{{.ID}}" | wc -l)"
@@ -27,17 +27,16 @@ else
   echo "Cannot access \"$DOCKER_SOCK\", won't look for containers to stop"
 fi
 
-
 if [ -S "$DOCKER_SOCK" ]; then
   TEMPFILE="$(mktemp)"
   docker ps \
-    --filter "label=docker-volume-backup.exec-pre-backup" \
-    --format '{{.ID}} {{.Label "docker-volume-backup.exec-pre-backup"}}' \
-    > "$TEMPFILE"
+  --filter "label=docker-volume-backup.exec-pre-backup" \
+  --format '{{.ID}} {{.Label "docker-volume-backup.exec-pre-backup"}}' \
+  >"$TEMPFILE"
   while read line; do
     info "Pre-exec command: $line"
     docker exec $line
-  done < "$TEMPFILE"
+  done <"$TEMPFILE"
   rm "$TEMPFILE"
 fi
 
@@ -61,13 +60,13 @@ fi
 if [ -S "$DOCKER_SOCK" ]; then
   TEMPFILE="$(mktemp)"
   docker ps \
-    --filter "label=docker-volume-backup.exec-post-backup" \
-    --format '{{.ID}} {{.Label "docker-volume-backup.exec-post-backup"}}' \
-    > "$TEMPFILE"
+  --filter "label=docker-volume-backup.exec-post-backup" \
+  --format '{{.ID}} {{.Label "docker-volume-backup.exec-post-backup"}}' \
+  >"$TEMPFILE"
   while read line; do
     info "Post-exec command: $line"
     docker exec $line
-  done < "$TEMPFILE"
+  done <"$TEMPFILE"
   rm "$TEMPFILE"
 fi
 
@@ -114,12 +113,12 @@ echo "$INFLUX_LINE" | sed 's/ /,/g' | tr , '\n'
 if [ ! -z "$INFLUXDB_URL" ]; then
   info "Shipping metrics"
   curl \
-    --silent \
-    --include \
-    --request POST \
-    --user "$INFLUXDB_CREDENTIALS" \
-    "$INFLUXDB_URL/write?db=$INFLUXDB_DB" \
-    --data-binary "$INFLUX_LINE"
+  --silent \
+  --include \
+  --request POST \
+  --user "$INFLUXDB_CREDENTIALS" \
+  "$INFLUXDB_URL/write?db=$INFLUXDB_DB" \
+  --data-binary "$INFLUX_LINE"
 fi
 
 info "Backup finished"
