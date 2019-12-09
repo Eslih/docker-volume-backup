@@ -1,3 +1,7 @@
+# Be careful!
+
+I am currently working on this project! The AWS part isn't working yet. Will improve the script and the documentation soon. 
+
 # docker-volume-backup
 
 Docker image for performing simple backups of Docker volumes. Main features:
