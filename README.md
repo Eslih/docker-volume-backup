@@ -143,11 +143,11 @@ If you need a more complex script for pre/post exec, consider mounting and invok
 
 Variable | Default | Notes
 --- | --- | ---
-`BACKUP_SOURCES` | `/backup` | Where to read data from. This can be a space-separated list if you need to back up multiple paths, when mounting multiple volumes for example. On the other hand, you can also just mount multiple volumes under `/backup` to have all of them backed up.
-`BACKUP_CRON_EXPRESSION` | `@daily` | Standard debian-flavored `cron` expression for when the backup should run. Use e.g. `0 4 * * *` to back up at 4 AM every night. See the [man page](http://man7.org/linux/man-pages/man8/cron.8.html) or [crontab.guru](https://crontab.guru/) for more.
+`BACKUP_SOURCE_PATH` | `/backup` | Where to read data from. If you need to backup multiple volumes, be sure to mount them under the same path.
+`BACKUP_CRON_EXPRESSION` | `30 3 * * *` | Standard Debian-flavored `cron` expression for when the backup should run. Use e.g. `0 4 * * *` to back up at 4 AM every night. See the [man page](http://man7.org/linux/man-pages/man8/cron.8.html) or [crontab.guru](https://crontab.guru/) for more information.
 `BACKUP_FILENAME` | `backup-%Y-%m-%dT%H-%M-%S.tar.gz` | File name template for the backup file. Is passed through `date` for formatting. See the [man page](http://man7.org/linux/man-pages/man1/date.1.html) for more.
-`BACKUP_ARCHIVE` | `/archive` | When this path is available within the container (i.e. you've mounted a Docker volume there), a finished backup file will get archived there after each run.
-`BACKUP_IDENT` | `true` | If you want to make multiple backups on the same machine, you can set an IDENT so that the nextcloud backup wont also shutdown the grafana containers for example.
+`BACKUP_ARCHIVE` | `true` | Whether you want to store the backup locally or not. If not set to true, the archive will be stored inside the container only.
+`BACKUP_ARCHIVE_PATH` | `/archive` | If `BACKUP_ARCHIVE` is set to `true` the tarball wil be save to this location.
 `BACKUP_WAIT_SECONDS` | `0` | The backup script will sleep this many seconds between re-starting stopped containers, and proceeding with archiving/uploading the backup. This can be useful if you don't want the load/network spike of a large upload immediately after the load/network spike of container startup.
 `BACKUP_HOSTNAME` | `$(hostname)` | Name of the host (i.e. Docker container) in which the backup runs. Mostly useful if you want a specific hostname to be associated with backup metrics (see InfluxDB support).
 `AWS_S3_BUCKET_NAME` |  | When provided, the resulting backup file will be uploaded to this S3 bucket after the backup has ran.

@@ -23,7 +23,7 @@ info() {
 info "Running backup script..."
 
 # Read cronjob env files
-printf "%s/n" "Reading env vars"
+printf "%s\n" "Reading env vars"
 . env.sh
 
 # Calculate backup time
@@ -59,7 +59,7 @@ if [ -S "$docker_sock" ]; then
   # Stop containers if needed
   containers_to_stop=$(docker ps \
     --format "{{.ID}}" \
-    --filter "label=docker-volume-backup.stop-during-backup=$BACKUP_IDENT")
+    --filter "label=docker-volume-backup.stop-during-backup=true")
   container_to_stop_count="$(echo "$containers_to_stop" | wc -w)"
 
   info "$container_to_stop_count container(s) marked to stop during backup"
@@ -101,15 +101,27 @@ fi
 info "Creating backup"
 
 backup_filename=$(date +"$BACKUP_FILENAME_TEMPLATE")
-time_backup_started="$(date +%s.%N)"
+#time_backup_started="$(date +%s.%N)"
 # shellcheck disable=SC2086
-tar -czf "$backup_filename" $BACKUP_SOURCES # allow the var to expand, in case we have multiple sources
+if ! tar -czf "$backup_filename" $BACKUP_SOURCE_PATH; then
+  error "The script wasn't able to create a tarball! Continuing ..."
+fi
 
-echo "$backup_filename"
-echo "$BACKUP_SOURCES"
+#backup_size="$(du -k "$backup_filename" | sed 's/\s.*$//')"
+#time_backup_stopped="$(date +%s.%N)"
 
-backup_size="$(du -k "$backup_filename" | sed 's/\s.*$//')"
-time_backup_stopped="$(date +%s.%N)"
+info "Waiting before processing"
+echo "Sleeping $BACKUP_WAIT_SECONDS seconds..."
+sleep "$BACKUP_WAIT_SECONDS"
+
+if [ "$BACKUP_ARCHIVE" = "true" ]; then
+  info "Archiving backup"
+  if ! mv -v "$backup_filename" "$BACKUP_ARCHIVE_PATH/$backup_filename"; then
+    error "Not able to arhive the tarball outside the container! Continuing ..."
+fi
+
+info "Backup finished"
+echo "Will wait for next scheduled backup"
 
 #
 #
@@ -119,7 +131,7 @@ time_backup_stopped="$(date +%s.%N)"
 #info "Creating backup"
 #BACKUP_FILENAME=$(date +"$BACKUP_FILENAME_TEMPLATE")
 #TIME_BACK_UP="$(date +%s.%N)"
-#tar -czf "$BACKUP_FILENAME" $BACKUP_SOURCES # allow the var to expand, in case we have multiple sources
+#tar -czf "$BACKUP_FILENAME" / $BACKUP_SOURCE # allow the var to expand, in case we have multiple sources
 #BACKUP_SIZE="$(du --bytes $BACKUP_FILENAME | sed 's/\s.*$//')"
 #TIME_BACKED_UP="$(date +%s.%N)"
 #
@@ -138,16 +150,6 @@ time_backup_stopped="$(date +%s.%N)"
 #  TIME_UPLOADED="$(date +%s.%N)"
 #fi
 #
-#if [ -d "$BACKUP_ARCHIVE" ]; then
-#  info "Archiving backup"
-#  mv -v "$BACKUP_FILENAME" "$BACKUP_ARCHIVE/$BACKUP_FILENAME"
-#fi
-#
-#if [ -f "$BACKUP_FILENAME" ]; then
-#  info "Cleaning up"
-#  rm -vf "$BACKUP_FILENAME"
-#fi
-
 #
 #info "Collecting metrics"
 #TIME_FINISH="$(date +%s.%N)"
@@ -175,5 +177,3 @@ time_backup_stopped="$(date +%s.%N)"
 #  --data-binary "$INFLUX_LINE"
 #fi
 #
-#info "Backup finished"
-#echo "Will wait for next scheduled backup"

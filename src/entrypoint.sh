@@ -19,7 +19,7 @@ info() {
 if [ -n "$TZ" ]; then
   if [ ! -f "/usr/share/zoneinfo/$TZ" ]; then
     error "Invalid / Unknown timezone: $TZ"
-    exit 128
+    exit 1
   fi
   info "Timezone changed to: $TZ"
 else
@@ -29,12 +29,12 @@ fi
 # Write cronjob env to file, fill in sensible defaults
 info "Writting Cronjob environment variables."
 cat <<EOF >env.sh
-BACKUP_IDENT="${BACKUP_IDENT:-true}"
-BACKUP_SOURCES="${BACKUP_SOURCES:-/backup}"
-BACKUP_CRON_EXPRESSION="${BACKUP_CRON_EXPRESSION:-* * * * *}"
+BACKUP_SOURCE_PATH="${BACKUP_SOURCE_PATH:-/backup}"
+BACKUP_CRON_EXPRESSION="${BACKUP_CRON_EXPRESSION:-30 3 * * *}"
 AWS_S3_BUCKET_NAME="${AWS_S3_BUCKET_NAME:-}"
 BACKUP_FILENAME_TEMPLATE="${BACKUP_FILENAME:-backup-%Y-%m-%dT%H-%M-%S.tar.gz}"
-BACKUP_ARCHIVE="${BACKUP_ARCHIVE:-/archive}"
+BACKUP_ARCHIVE="${BACKUP_ARCHIVE:-true}"
+BACKUP_ARCHIVE_PATH="${BACKUP_ARCHIVE_PATH:-/archive}"
 BACKUP_WAIT_SECONDS="${BACKUP_WAIT_SECONDS:-0}"
 BACKUP_HOSTNAME="${BACKUP_HOSTNAME:-$(hostname)}"
 INFLUXDB_URL="${INFLUXDB_URL:-}"
@@ -48,7 +48,30 @@ chmod a+x env.sh
 # Read cronjob env files
 . env.sh
 
-# TODO: Check (some) environments vars
+# TODO: Check (some more) environments vars
+
+# Does the backup source exists?
+if [ ! -d "$BACKUP_SOURCE_PATH" ]; then
+  error "The backup source path ($BACKUP_SOURCE_PATH [\"$BACKUP_SOURCE_PATH\"]) is not  valid."
+  exit 1
+  if [ -z "$(ls -A "$BACKUP_SOURCE_PATH")" ]; then
+    error "The backup source doesn't contain any files. Did you provide the right path / mounting point?"
+    exit 1
+  fi
+fi
+
+# If BACKUP_ARCHIVE is true, check BACKUP_ARCHIVE is a valid, writable directory
+if [ "$BACKUP_ARCHIVE" = "true" ]; then
+  if [ ! -d "$BACKUP_ARCHIVE_PATH" ]; then
+    error "The backup archive path (\$BACKUP_ARCHIVE_PATH [$BACKUP_ARCHIVE_PATH]) is not valid."
+    exit 1
+  elif [ ! -w "$BACKUP_ARCHIVE_PATH" ]; then
+    error "The backup archive path (\$BACKUP_ARCHIVE_PATH [$BACKUP_ARCHIVE_PATH]) is not writable."
+    exit 1
+  fi
+else
+  echo "\"$BACKUP_ARCHIVE\" is not true, tarball will only be saved inside the container."
+fi
 
 # Add our cron entry, and direct stdout & stderr to Docker commands stdout
 info "Adding cronjob to /etc/crontabs/root"
