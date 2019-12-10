@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# TODO: Chekc errors
+# TODO: Check errors
 # eg. if ! docker ... then ... fi
 
 # TODO: Catch sigterm
@@ -118,6 +118,7 @@ if [ "$BACKUP_ARCHIVE" = "true" ]; then
   info "Archiving backup"
   if ! mv -v "$backup_filename" "$BACKUP_ARCHIVE_PATH/$backup_filename"; then
     error "Not able to arhive the tarball outside the container! Continuing ..."
+  fi
 fi
 
 info "Backup finished"
