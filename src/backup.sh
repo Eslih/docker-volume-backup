@@ -20,6 +20,14 @@ info() {
   printf "%b\n" "${bold}[INFO] ${1}${reset}"
 }
 
+warn() {
+  bold="\033[1m"
+  yellow="\033[33m"
+  reset="\033[0m"
+
+  printf "%b\n" "${yellow}${bold}[WARNING] ${*}${reset}" >&2
+}
+
 info "Running backup script..."
 
 # Read cronjob env files
@@ -102,6 +110,7 @@ backup_filename=$(date +"$BACKUP_FILENAME_TEMPLATE")
 # shellcheck disable=SC2086
 if ! tar -czf "$backup_filename" $BACKUP_SOURCE_PATH; then
   error "The script wasn't able to create a tarball! Continuing ..."
+#elif 1 = 1; then
 fi
 
 #backup_size="$(du -k "$backup_filename" | sed 's/\s.*$//')"
@@ -115,15 +124,22 @@ if [ "$BACKUP_ARCHIVE" = "true" ]; then
   info "Archiving backup"
   if ! mv -v "$backup_filename" "$BACKUP_ARCHIVE_PATH/$backup_filename"; then
     error "Not able to arhive the tarball outside the container! Continuing ..."
-  elif [ "$BACKUP_ARCHIVE_RETENTION" -gt 0 ]; then
-    echo "Only last $BACKUP_ARCHIVE_RETENTION archives will be kept."
-    BACKUP_ARCHIVE_RETENTION=$((BACKUP_ARCHIVE_RETENTION + 1))
-
-    if ! (cd "$BACKUP_ARCHIVE_PATH" && ls -tp | grep -v '/$' | tail -n +6 | xargs -I {} rm -- {}); then
-      error "Not able to remove older archives! Continuing ..."
+  else
+    if [ "$BACKUP_ARCHIVE_RETENTION" -gt 0 ]; then
+      echo "Only last $BACKUP_ARCHIVE_RETENTION archives will be kept."
+      BACKUP_ARCHIVE_RETENTION=$((BACKUP_ARCHIVE_RETENTION + 1))
+      if ! (cd "$BACKUP_ARCHIVE_PATH" && ls -tp | grep -v '/$' | tail -n +"$BACKUP_ARCHIVE_RETENTION" | xargs -I {} rm -- {}); then
+        error "Not able to remove older archives! Continuing ..."
+      fi
+    fi
+    if [ -n "$BACKUP_ARCHIVE_ENCRYPTION_PASSWORD" ]; then
+      info "Encrypting backup"
+      echo "$BACKUP_ARCHIVE_ENCRYPTION_PASSWORD" | gpg --batch --pinentry-mode loopback --command-fd 0 --symmetric --cipher-algo aes256 --output "$BACKUP_ARCHIVE_PATH/$backup_filename".gpg "$BACKUP_ARCHIVE_PATH/$backup_filename"
+      rm "$BACKUP_ARCHIVE_PATH/$backup_filename"
+    else
+      warn "Backups will NOT be encrypted."
     fi
   fi
-
 fi
 
 info "Backup finished"

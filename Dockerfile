@@ -1,6 +1,6 @@
 FROM alpine:3.10.3
 
-RUN apk add --no-cache docker openrc tzdata
+RUN apk add --no-cache docker openrc tzdata gnupg
 RUN rc-update add docker boot
 
 WORKDIR /root
