@@ -152,6 +152,7 @@ Variable | Default | Notes
 `BACKUP_FILENAME` | `backup-%Y-%m-%dT%H-%M-%S.tar.gz` | File name template for the backup file. Is passed through `date` for formatting. See the [man page](http://man7.org/linux/man-pages/man1/date.1.html) for more.
 `BACKUP_ARCHIVE` | `true` | Whether you want to store the backup locally or not. If not set to true, the archive will be stored inside the container only.
 `BACKUP_ARCHIVE_PATH` | `/archive` | If `BACKUP_ARCHIVE` is set to `true` the tarball wil be save to this location.
+`BACKUP_ARCHIVE_RETENTION` | `5` | If `BACKUP_ARCHIVE` is set to `true` only x tarballs will be kept. Set to `0` to disable.
 `BACKUP_WAIT_SECONDS` | `0` | The backup script will sleep this many seconds between re-starting stopped containers, and proceeding with archiving/uploading the backup. This can be useful if you don't want the load/network spike of a large upload immediately after the load/network spike of container startup.
 `BACKUP_HOSTNAME` | `$(hostname)` | Name of the host (i.e. Docker container) in which the backup runs. Mostly useful if you want a specific hostname to be associated with backup metrics (see InfluxDB support).
 `AWS_S3_BUCKET_NAME` |  | When provided, the resulting backup file will be uploaded to this S3 bucket after the backup has ran.

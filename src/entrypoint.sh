@@ -35,6 +35,7 @@ AWS_S3_BUCKET_NAME="${AWS_S3_BUCKET_NAME:-}"
 BACKUP_FILENAME_TEMPLATE="${BACKUP_FILENAME:-backup-%Y-%m-%dT%H-%M-%S.tar.gz}"
 BACKUP_ARCHIVE="${BACKUP_ARCHIVE:-true}"
 BACKUP_ARCHIVE_PATH="${BACKUP_ARCHIVE_PATH:-/archive}"
+BACKUP_ARCHIVE_RETENTION="${BACKUP_ARCHIVE_RETENTION:-5}"
 BACKUP_WAIT_SECONDS="${BACKUP_WAIT_SECONDS:-0}"
 BACKUP_HOSTNAME="${BACKUP_HOSTNAME:-$(hostname)}"
 INFLUXDB_URL="${INFLUXDB_URL:-}"
@@ -47,8 +48,6 @@ chmod a+x env.sh
 
 # Read cronjob env files
 . env.sh
-
-# TODO: Check (some more) environments vars
 
 # Does the backup source exists?
 if [ ! -d "$BACKUP_SOURCE_PATH" ]; then
@@ -67,6 +66,9 @@ if [ "$BACKUP_ARCHIVE" = "true" ]; then
     exit 1
   elif [ ! -w "$BACKUP_ARCHIVE_PATH" ]; then
     error "The backup archive path (\$BACKUP_ARCHIVE_PATH [$BACKUP_ARCHIVE_PATH]) is not writable."
+
+  elif ! [ "$BACKUP_ARCHIVE_RETENTION" -ge 0 ] 2>/dev/null; then
+    error "\$BACKUP_ARCHIVE_RETENTION should be greather than or equal to zero."
     exit 1
   fi
 else

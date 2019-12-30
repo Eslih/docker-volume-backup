@@ -72,9 +72,6 @@ else
   info "Cannot access \"$docker_sock\", won't interact with the container(s)"
 fi
 
-# TODO: Backup!
-
-#
 if [ -S "$docker_sock" ]; then
 
   info "Restarting $container_to_stop_count container(s) ..."
@@ -118,7 +115,15 @@ if [ "$BACKUP_ARCHIVE" = "true" ]; then
   info "Archiving backup"
   if ! mv -v "$backup_filename" "$BACKUP_ARCHIVE_PATH/$backup_filename"; then
     error "Not able to arhive the tarball outside the container! Continuing ..."
+  elif [ "$BACKUP_ARCHIVE_RETENTION" -gt 0 ]; then
+    echo "Only last $BACKUP_ARCHIVE_RETENTION archives will be kept."
+    BACKUP_ARCHIVE_RETENTION=$((BACKUP_ARCHIVE_RETENTION + 1))
+
+    if ! (cd "$BACKUP_ARCHIVE_PATH" && ls -tp | grep -v '/$' | tail -n +6 | xargs -I {} rm -- {}); then
+      error "Not able to remove older archives! Continuing ..."
+    fi
   fi
+
 fi
 
 info "Backup finished"
