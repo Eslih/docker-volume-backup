@@ -59,9 +59,8 @@ if [ -S "$docker_sock" ]; then
 
   info "$containers_to_pre_exec_count container(s) marked to run a pre-exec command"
   while read -r line; do
-    printf "Pre-exec command: %s\n" "$line"
-    # shellcheck disable=SC2086
-    docker exec $line
+    printf "Pre-exec command: docker exec -d %s\n" "$line"
+    eval "docker exec -d $line"
   done <"$temp_file"
 
   # Stop containers if needed
@@ -98,8 +97,7 @@ if [ -S "$docker_sock" ]; then
   info "$containers_to_post_exec_count container(s) marked to run a post-exec command"
   while read -r line; do
     printf "Post-exec command: %s\n" "$line"
-    # shellcheck disable=SC2086
-    docker exec $line
+    eval "docker exec -d $line"
   done <"$temp_file"
 fi
 
