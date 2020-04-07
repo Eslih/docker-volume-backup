@@ -119,6 +119,16 @@ echo "Sleeping $BACKUP_WAIT_SECONDS seconds..."
 sleep "$BACKUP_WAIT_SECONDS"
 
 if [ "$BACKUP_ARCHIVE" = "true" ]; then
+  # Encrypt before "leaving" Docker container!
+  if [ -n "$BACKUP_ARCHIVE_ENCRYPTION_PASSWORD" ]; then
+    info "Encrypting backup"
+    echo "$BACKUP_ARCHIVE_ENCRYPTION_PASSWORD" | gpg --batch --pinentry-mode loopback --command-fd 0 --symmetric --cipher-algo aes256 --output "$backup_filename".gpg "$backup_filename"
+    rm "$backup_filename"
+    backup_filename="${backup_filename}.gpg"
+  else
+    warn "Backups will NOT be encrypted."
+  fi
+
   info "Archiving backup"
   if ! mv -v "$backup_filename" "$BACKUP_ARCHIVE_PATH/$backup_filename"; then
     error "Not able to arhive the tarball outside the container! Continuing ..."
@@ -129,13 +139,6 @@ if [ "$BACKUP_ARCHIVE" = "true" ]; then
       if ! (cd "$BACKUP_ARCHIVE_PATH" && ls -tp | grep -v '/$' | tail -n +"$BACKUP_ARCHIVE_RETENTION" | xargs -I {} rm -- {}); then
         error "Not able to remove older archives! Continuing ..."
       fi
-    fi
-    if [ -n "$BACKUP_ARCHIVE_ENCRYPTION_PASSWORD" ]; then
-      info "Encrypting backup"
-      echo "$BACKUP_ARCHIVE_ENCRYPTION_PASSWORD" | gpg --batch --pinentry-mode loopback --command-fd 0 --symmetric --cipher-algo aes256 --output "$BACKUP_ARCHIVE_PATH/$backup_filename".gpg "$BACKUP_ARCHIVE_PATH/$backup_filename"
-      rm "$BACKUP_ARCHIVE_PATH/$backup_filename"
-    else
-      warn "Backups will NOT be encrypted."
     fi
   fi
 fi
